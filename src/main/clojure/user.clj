@@ -12,7 +12,7 @@
       getLogManager
       (readConfiguration (io/input-stream conf))))
 
-(require '[clojure.tools.logging :refer (info spyf)])
+(require '[clojure.tools.logging :refer (info)])
 
 
 (extend-protocol io/IOFactory
@@ -48,12 +48,12 @@
          k    (str x)
          envk (str/upper-case (str/replace k #"[-.]" "_"))
          v    (or (System/getProperty k)
-                  (System/getenv envk))]
-     (if (nil? v)
-       (spyf :info (str "#prop " x " default: %s")
-             not-found)
-       (spyf :info (str "#prop " x "  config: %s")
-             ((COERCIONS tag identity) v))))))
+                  (System/getenv envk))
+         prop (if (nil? v)
+                not-found
+                ((COERCIONS tag identity) v))]
+     (info "#prop" k "=>" prop)
+     prop)))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
