@@ -8,6 +8,11 @@
             Channels]))
 
 
+(when-some [conf (io/resource "logging.properties")]
+  (.. java.util.logging.LogManager
+      getLogManager
+      (readConfiguration (io/input-stream conf))))
+
 (extend-protocol io/IOFactory
   WritableByteChannel
   (make-output-stream [x _]
@@ -64,12 +69,6 @@
         (alter-meta! merge (meta sv#)))))
   ([dst orig doc]
    (list `defalias (with-meta dst (assoc (meta name) :doc doc)) orig)))
-
-(when-some [conf (io/resource "logging.properties")]
-  (.. java.util.logging.LogManager
-      getLogManager
-      (readConfiguration (io/input-stream conf))))
-
 
 (defmacro if-require
   ([ns then] `(if-require ~ns ~then nil))
