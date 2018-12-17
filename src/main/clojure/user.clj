@@ -1,7 +1,6 @@
 (ns user
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojure.tools.logging :refer (info spyf)])
+            [clojure.string :as str])
   (:import [java.nio.channels
             WritableByteChannel
             ReadableByteChannel
@@ -12,6 +11,9 @@
   (.. java.util.logging.LogManager
       getLogManager
       (readConfiguration (io/input-stream conf))))
+
+(require '[clojure.tools.logging :refer (info spyf)])
+
 
 (extend-protocol io/IOFactory
   WritableByteChannel
@@ -48,8 +50,10 @@
          v    (or (System/getProperty k)
                   (System/getenv envk))]
      (if (nil? v)
-       (spyf :info (str x "\tdefault: %s") not-found)
-       (spyf :info (str x "\tconfigured: %s") ((COERCIONS tag identity) v))))))
+       (spyf :info (str "#prop " x " default: %s")
+             not-found)
+       (spyf :info (str "#prop " x "  config: %s")
+             ((COERCIONS tag identity) v))))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
