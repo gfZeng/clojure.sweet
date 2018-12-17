@@ -1,0 +1,1 @@
+{prop user/read-property}

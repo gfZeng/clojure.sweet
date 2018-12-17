@@ -1,0 +1,4 @@
+{:paths ["src/main/clojure" "src/main/resources"]
+ :aliases
+ {:dev {:extra-deps {cheshire               {:mvn/version "RELEASE"}
+                     org.clojure/core.async {:mvn/version "RELEASE"}}}}}
