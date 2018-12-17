@@ -23,7 +23,7 @@
 
 (prn `*assert* *assert*)
 
-(def COERCES
+(def COERCIONS
   {'int   #(Integer/parseInt %)
    'long  #(Long/parseLong %)
    'ints  (fn [s] (mapv #(Integer/parseInt %)
@@ -43,7 +43,7 @@
                   (System/getenv envk))]
      (if (nil? v)
        not-found
-       ((COERCES tag identity) v)))))
+       ((COERCIONS tag identity) v)))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
