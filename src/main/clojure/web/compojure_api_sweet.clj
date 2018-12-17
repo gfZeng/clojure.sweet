@@ -1,6 +1,7 @@
 (when-not (find-ns 'compojure.api.sweet)
   (throw (ex-info "compojure.api.sweet required" {})))
 (in-ns 'compojure.api.sweet)
+(require '[clojure.tools.logging :refer (warn debug)])
 
 (defalias ring.util.http-response)
 (defalias route-middleware compojure.api.core/route-middleware)
@@ -57,12 +58,12 @@
      (let [ts  (System/nanoTime)
            res (h req)
            end (System/nanoTime)]
-       (prn (:request-method req) (:uri req) (/ (- end ts) 1E6))
+       (debug (:request-method req) (:uri req) (/ (- end ts) 1E6))
        res))
     ([req respond raise]
      (let [ts (System/nanoTime)]
        (h req #(let [end (System/nanoTime)]
-                 (prn (:request-method req) (:uri req) (/ (- end ts) 1E6))
+                 (debug (:request-method req) (:uri req) (/ (- end ts) 1E6))
                  (respond %))
           raise)))))
 
@@ -78,4 +79,4 @@
 (defn json-use-bigdec []
   (if-some [var (resolve 'cheshire.parse/*use-bigdecimals?*)]
     (alter-var-root var (constantly true))
-    (println "WARN cheshire required")))
+    (warn "cheshire required")))

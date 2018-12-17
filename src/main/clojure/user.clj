@@ -1,6 +1,7 @@
 (ns user
   (:require [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.tools.logging :refer (info spyf)])
   (:import [java.nio.channels
             WritableByteChannel
             ReadableByteChannel
@@ -21,7 +22,7 @@
  #'*assert*
  (constantly (.desiredAssertionStatus clojure.main)))
 
-(prn `*assert* *assert*)
+(info `*assert* *assert*)
 
 (def COERCIONS
   {'int   #(Integer/parseInt %)
@@ -42,8 +43,8 @@
          v    (or (System/getProperty k)
                   (System/getenv envk))]
      (if (nil? v)
-       not-found
-       ((COERCIONS tag identity) v)))))
+       (spyf :info (str x "\tdefault: %s") not-found)
+       (spyf :info (str x "\tconfigured: %s") ((COERCIONS tag identity) v))))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
