@@ -55,6 +55,18 @@
      (info "#prop" k "=>" prop)
      prop)))
 
+(defn array-type [clazz]
+  (case clazz
+    boolean (Class/forName "[Z")
+    byte    (Class/forName "[B")
+    char    (Class/forName "[C")
+    short   (Class/forName "[S")
+    int     (Class/forName "[I")
+    long    (Class/forName "[J")
+    float   (Class/forName "[F")
+    double  (Class/forName "[D")
+    (Class/forName (str "[L" (.getCanonicalName (resolve clazz)) ";"))))
+
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
   any) and similar metadata. The metadata of the alias is its initial
