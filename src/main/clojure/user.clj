@@ -31,6 +31,22 @@
 
 (info `*assert* *assert*)
 
+(defmacro extend-with-canonical [protocol type coerce]
+  (let [p    @(resolve protocol)
+        sigs (vals (:sigs p))
+        ns   (-> (:method-builders p) first key (.-ns) (.-name))
+
+        coerce-sym (gensym "coerce_")
+        sig-form   (fn [f arglists]
+                     (let [nsf (symbol (name ns) (name f))]
+                       (cons f (for [args arglists]
+                                 `(~args (~nsf (~coerce-sym ~(first args)) ~@(rest args)))))))]
+    `(let [~coerce-sym ~coerce]
+       (extend-type ~type
+         ~protocol
+         ~@(for [{f :name arglists :arglists} sigs]
+             (sig-form f arglists))))))
+
 (def COERCIONS
   {'int   #(Integer/parseInt %)
    'long  #(Long/parseLong %)
@@ -108,6 +124,7 @@
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
+(defalias clojure.core/extend-with-canonical extend-with-canonical)
 
 (when-require 'clojure.core.async
   (load "core_async"))
