@@ -135,11 +135,24 @@
          attrs        (conj attrs attrs-merge)]
      [(with-meta sym attrs) args])))
 
+(defmacro def-dynamic [fname & args]
+  (let [[fname args]    (name-with-meta fname args)
+        [argv & body]   args
+        [dy-sym & argv] argv
+        argv'           (repeatedly (count argv) #(gensym "arg_"))]
+    `(defn ~fname
+       ([bind# ~@argv']
+        (binding [~dy-sym bind#]
+          (~fname ~@argv')))
+       ([~@argv]
+        ~@body))))
+
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
 (defalias clojure.core/extend-with-canonical extend-with-canonical)
+(defalias clojure.core/def-dynamic def-dynamic)
 
 (when-require 'clojure.core.async
   (load "core_async"))
