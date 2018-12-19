@@ -20,7 +20,7 @@
 (defn write [x wrt & {:as opts}]
   (generate-stream x wrt opts))
 
-(defn write-str [x wrt & {:as opts}]
+(defn write-str [x & {:as opts}]
   (generate-string x opts))
 
 
