@@ -119,6 +119,21 @@
      then
      `(if-require ~ns ~then (cond-require ~@elses)))))
 
+(defn name-with-meta
+  "Given a symbol and args, returns [<name-with-meta-meta> <args>] with
+  support for `defn` style `?doc` and `?attrs-map`."
+  ([sym args            ] (name-with-meta sym args nil))
+  ([sym args attrs-merge]
+   (let [[?doc args]  (if (and (string? (first args)) (next args))
+                        [(first args) (next args)]
+                        [nil args])
+         [attrs args] (if (and (map?    (first args)) (next args))
+                        [(first args) (next args)]
+                        [{}  args])
+         attrs        (if ?doc (assoc attrs :doc ?doc) attrs)
+         attrs        (if (meta sym) (conj (meta sym) attrs) attrs)
+         attrs        (conj attrs attrs-merge)]
+     [(with-meta sym attrs) args])))
 
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
