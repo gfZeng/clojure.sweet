@@ -128,3 +128,6 @@
 
 (when-require 'clojure.core.async
   (load "core_async"))
+
+(when (io/resource "user.ext.clj")
+  (load "user.ext"))
