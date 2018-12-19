@@ -4,14 +4,17 @@
 (require '[cheshire.core :refer [parse-string
                                  parse-stream
                                  generate-string
-                                 generate-stream]])
+                                 generate-stream]]
+         '[cheshire.parse :refer (*use-bigdecimals?*)])
 
-(defn read [rdr & {:keys [biddec key-fn value-fn]}]
-  (binding [cheshire.parse/*use-bigdecimals?* bigdec]
+(defn read [rdr & {:keys [bigdec key-fn value-fn]
+                   :or   {bigdec *use-bigdecimals?*}}]
+  (binding [*use-bigdecimals?* bigdec]
     (parse-stream rdr key-fn value-fn)))
 
-(defn read-str [rdr & {:keys [biddec key-fn value-fn]}]
-  (binding [cheshire.parse/*use-bigdecimals?* bigdec]
+(defn read-str [rdr & {:keys [bigdec key-fn value-fn]
+                       :or   {bigdec *use-bigdecimals?*}}]
+  (binding [*use-bigdecimals?* bigdec]
     (parse-string rdr key-fn value-fn)))
 
 (defn write [x wrt & {:as opts}]
