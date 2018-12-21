@@ -43,3 +43,6 @@
 
 (defn take<!! [n ch]
   (<!! (go (take<! n ch))))
+
+(defmacro <<! [ch]
+  `(some-> (<! ~ch) (<!)))
