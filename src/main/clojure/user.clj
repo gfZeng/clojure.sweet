@@ -48,12 +48,13 @@
              (sig-form f arglists))))))
 
 (def COERCIONS
-  {'int   #(Integer/parseInt %)
-   'long  #(Long/parseLong %)
-   'ints  (fn [s] (mapv #(Integer/parseInt %)
-                        (str/split s #",")))
-   'longs (fn [s] (mapv #(Long/parseLong %)
-                        (str/split s #",")))})
+  {'int     #(Integer/parseInt %)
+   'long    #(Long/parseLong %)
+   'strings #(vec (str/split % #","))
+   'ints    (fn [s] (mapv #(Integer/parseInt %)
+                          (str/split s #",")))
+   'longs   (fn [s] (mapv #(Long/parseLong %)
+                          (str/split s #",")))})
 
 (defn read-property
   ([x] (if (sequential? x)
