@@ -57,9 +57,7 @@
                           (str/split s #",")))})
 
 (defn read-property
-  ([x] (if (sequential? x)
-         (read-property (first x) (second x))
-         (read-property x clojure.lang.Var$Unbound)))
+  ([x] (read-property x nil))
   ([x not-found]
    (let [tag  (:tag (meta x))
          k    (str x)
@@ -69,8 +67,13 @@
          prop (if (nil? v)
                 not-found
                 ((COERCIONS tag identity) v))]
-     (info "#prop" k "=>" prop)
+     (info "#prop" k "=>" (pr-str prop))
      prop)))
+
+(defn read-property-form [x]
+  (if (sequential? x)
+    `(read-property '~(first x) ~(second x))
+    `(read-property '~x clojure.lang.Var$Unbound)))
 
 (defn array-type [clazz]
   (case clazz

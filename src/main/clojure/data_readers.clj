@@ -1,2 +1,2 @@
-{prop       user/read-property
+{prop       user/read-property-form
  array-type user/array-type}
