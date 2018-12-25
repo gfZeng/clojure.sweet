@@ -92,8 +92,8 @@
   any) and similar metadata. The metadata of the alias is its initial
   metadata (as provided by def) merged into the metadata of the original."
   ([ns]
+   (require ns)
    `(do
-      (require ~ns)
       ~@(for [sym# (keys (ns-publics ns))
               :let [orig# (symbol (name ns) (name sym#))]]
           (list 'defalias sym# orig#))))
