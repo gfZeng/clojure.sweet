@@ -50,6 +50,7 @@
 (def COERCIONS
   {'int     #(Integer/parseInt %)
    'long    #(Long/parseLong %)
+   'boolean #(Boolean/parseBoolean %)
    'strings #(vec (str/split % #","))
    'ints    (fn [s] (mapv #(Integer/parseInt %)
                           (str/split s #",")))
@@ -73,7 +74,7 @@
 (defn read-property-form [x]
   (if (sequential? x)
     `(read-property '~(first x) ~(second x))
-    `(read-property '~x clojure.lang.Var$Unbound)))
+    `(read-property '~x nil)))
 
 (defn array-type [clazz]
   (case clazz
