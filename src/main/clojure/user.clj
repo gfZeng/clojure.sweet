@@ -152,12 +152,42 @@
        ([~@argv]
         ~@body))))
 
+(defmacro defprotocol+
+  {:style/indent '(2 nil nil (:defn))}
+  [thedef rname fields & impls]
+  (let [p             (symbol (str \I rname))
+        symargs       (fn [args]
+                        (mapv #(if (symbol? %) % (gensym "arg_")) args))
+        [pimpls more] (split-with seq? impls)
+        pimpls        (group-by first pimpls)
+        sigs          (for [[fname impls] pimpls]
+                        (cons fname (map (comp symargs second) impls)))]
+    `(do
+       (defprotocol ~p
+         ~@sigs)
+       (~thedef ~rname ~fields
+        ~p
+        ~@(mapcat val pimpls)
+        ~@more))))
+
+(defmacro defprotocol+record
+  {:style/indent '(2 nil nil (:defn))}
+  [& decls]
+  `(defprotocol+ defrecord ~@decls))
+
+(defmacro defprotocol+type
+  {:style/indent '(2 nil nil (:defn))}
+  [& decls]
+  `(defprotocol+ deftype ~@decls))
+
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
 (defalias clojure.core/extend-with-canonical extend-with-canonical)
 (defalias clojure.core/def-dynamic def-dynamic)
+(defalias clojure.core/defprotocol+record defprotocol+record)
+(defalias clojure.core/defprotocol+type defprotocol+type)
 
 (when-require 'clojure.core.async
   (load "core_async"))
