@@ -1,4 +1,7 @@
 (ns user
+  (:refer-clojure :exclude [defalias if-require when-require cond-require
+                            extend-with-canonical def-dynamic
+                            defprotocol+record defprotocol+type])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
   (:import [java.nio.channels
