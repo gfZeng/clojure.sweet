@@ -98,6 +98,7 @@
   ([ns]
    (require ns)
    `(do
+      (require '~ns)
       ~@(for [sym# (keys (ns-publics ns))
               :let [orig# (symbol (name ns) (name sym#))]]
           (list 'defalias sym# orig#))))
