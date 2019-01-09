@@ -29,7 +29,7 @@
     `(def ~name
        ~(apply method &form &env path req
                ;; :coercion :spec
-               :tags [(str (ns-name *ns*))]
+               :tags (or (:swagger/tags (meta *ns*)) [(str (ns-name *ns*))])
                body))))
 
 (defn unmap-endpoints [ns]
