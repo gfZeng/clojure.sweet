@@ -46,3 +46,12 @@
 
 (defmacro <<! [ch]
   `(some-> (<! ~ch) (<!)))
+
+(defmacro go-promise [& body]
+  `(let [pch# (promise-chan)]
+     (go
+       (let [ret# (do ~@body)]
+         (if (nil? ret#)
+           (close! pch#)
+           (put! pch# ret#))))
+     pch#))
