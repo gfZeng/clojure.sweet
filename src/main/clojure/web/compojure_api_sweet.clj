@@ -80,3 +80,11 @@
   (if-some [var (resolve 'cheshire.parse/*use-bigdecimals?*)]
     (alter-var-root var (constantly true))
     (warn "cheshire required")))
+
+
+;; ring.util.http-response
+(defn invalid-token
+  ([]     (invalid-token nil))
+  ([body] {:status  498
+           :headers {}
+           :body    body}))
