@@ -1,6 +1,6 @@
 (ns user
   (:refer-clojure :exclude [defalias if-require when-require cond-require
-                            extend-with-canonical def-dynamic
+                            extend-with-coerce
                             defprotocol+record defprotocol+type])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
@@ -34,7 +34,7 @@
 
 (info `*assert* *assert*)
 
-(defmacro extend-with-canonical [protocol type coerce]
+(defmacro extend-with-coerce [protocol type coerce]
   (let [p    @(resolve protocol)
         sigs (vals (:sigs p))
         ns   (-> (:method-builders p) first key (.-ns) (.-name))
@@ -144,18 +144,6 @@
          attrs        (conj attrs attrs-merge)]
      [(with-meta sym attrs) args])))
 
-(defmacro def-dynamic [fname & args]
-  (let [[fname args]    (name-with-meta fname args)
-        [argv & body]   args
-        [dy-sym & argv] argv
-        argv'           (repeatedly (count argv) #(gensym "arg_"))]
-    `(defn ~fname
-       ([bind# ~@argv']
-        (binding [~dy-sym bind#]
-          (~fname ~@argv')))
-       ([~@argv]
-        ~@body))))
-
 (defmacro defprotocol+
   {:style/indent '(2 nil nil (:defn))}
   [thedef rname fields & impls]
@@ -188,8 +176,7 @@
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
-(defalias clojure.core/extend-with-canonical extend-with-canonical)
-(defalias clojure.core/def-dynamic def-dynamic)
+(defalias clojure.core/extend-with-coerce extend-with-coerce)
 (defalias clojure.core/defprotocol+record defprotocol+record)
 (defalias clojure.core/defprotocol+type defprotocol+type)
 
