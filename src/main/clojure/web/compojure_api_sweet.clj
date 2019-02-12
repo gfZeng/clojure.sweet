@@ -1,7 +1,8 @@
 (when-not (find-ns 'compojure.api.sweet)
   (throw (ex-info "compojure.api.sweet required" {})))
 (in-ns 'compojure.api.sweet)
-(require '[clojure.tools.logging :refer (warn debug)])
+(require '[clojure.tools.logging :refer (warn debug)]
+         '[clojure.string :as str])
 
 (defalias ring.util.http-response)
 (defalias route-middleware compojure.api.core/route-middleware)
@@ -28,8 +29,10 @@
         [req & body] body]
     `(def ~name
        ~(apply method &form &env path req
-               ;; :coercion :spec
-               :tags (or (:swagger/tags (meta *ns*)) [(str (ns-name *ns*))])
+               :tags (or (:swagger/tags (meta *ns*))
+                         [(-> (str (ns-name *ns*))
+                              (str/split #"\.")
+                              (last))])
                body))))
 
 (defn unmap-endpoints [ns]
