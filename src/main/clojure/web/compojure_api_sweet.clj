@@ -42,6 +42,10 @@
               (when (endpoint? var)
                 (ns-unmap ns sym))))))
 
+
+(defn- skip-ns-routes? [var]
+  (boolean (:skip-ns-routes? (meta var))))
+
 (defn ns-routes
   ([ns]
    (ns-routes ns nil))
@@ -52,6 +56,7 @@
         (ns-publics)
         (vals)
         (filter endpoint?)
+        (filter skip-ns-routes?)
         (map (if reload? identity deref))
         (apply routes))))
 
@@ -69,20 +74,6 @@
                  (debug (:request-method req) (:uri req) (/ (- end ts) 1E6))
                  (respond %))
           raise)))))
-
-(defn anomaly
-  ([key] (anomaly key nil))
-  ([key msg]
-   (let [body {:error key :msg msg}]
-     (case key
-       :anomaly/conflict     (conflict body)
-       :anomaly/unauthorized (unauthorized body)
-       :else                 (internal-server-error body)))))
-
-(defn json-use-bigdec []
-  (if-some [var (resolve 'cheshire.parse/*use-bigdecimals?*)]
-    (alter-var-root var (constantly true))
-    (warn "cheshire required")))
 
 
 ;; ring.util.http-response
