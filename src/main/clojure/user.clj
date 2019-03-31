@@ -4,16 +4,27 @@
                             defprotocol+record defprotocol+type])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
-  (:import [java.nio.channels
+  (:import [java.util Properties]
+           [java.io PipedOutputStream PipedInputStream]
+           [java.nio.channels
             WritableByteChannel
             ReadableByteChannel
             Channels]))
 
 
-(when-some [conf (io/resource "logging.properties")]
-  (.. java.util.logging.LogManager
-      getLogManager
-      (readConfiguration (io/input-stream conf))))
+(when-not (System/getProperty "java.util.logging.config.file")
+  (when-some [conf (io/resource "logging.properties")]
+    (let [props (doto (Properties.)
+                  (.load (io/input-stream conf)))
+          in    (PipedInputStream.)
+          out   (PipedOutputStream. in)]
+      (doseq [[k v] (System/getProperties)
+              :when (str/starts-with? k "java.util.logging.")]
+        (.setProperty props k v))
+      (.store props (io/writer out) "Memory temporary")
+      (.. java.util.logging.LogManager
+          getLogManager
+          (readConfiguration in)))))
 
 (require '[clojure.tools.logging :refer (info)])
 
