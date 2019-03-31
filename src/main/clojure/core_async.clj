@@ -33,13 +33,14 @@
   `(let [n#  ~n
          ch# ~ch]
      (assert (pos? n#) ~(str n " must greater than 0"))
-     (let [xs# (transient [(<! ch#)])]
-       (loop [n# (dec n#)]
-         (if-some [x# (when (pos? n#)
-                        (poll! ch#))]
-           (do (conj! xs# x#)
-               (recur (dec n#)))
-           (persistent! xs#))))))
+     (when-some [x# (<! ch#)]
+       (let [xs# (transient [x#])]
+         (loop [n# (dec n#)]
+           (if-some [x# (when (pos? n#)
+                          (poll! ch#))]
+             (do (conj! xs# x#)
+                 (recur (dec n#)))
+             (persistent! xs#)))))))
 
 (defn take<!! [n ch]
   (<!! (go (take<! n ch))))
@@ -47,7 +48,9 @@
 (defmacro <<! [ch]
   `(some-> (<! ~ch) (<!)))
 
-(defmacro go-promise [& body]
+(defmacro go-promise
+  {:style/indent 0}
+  [& body]
   `(let [pch# (promise-chan)]
      (go
        (let [ret# (do ~@body)]
