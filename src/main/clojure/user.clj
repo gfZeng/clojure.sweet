@@ -191,8 +191,27 @@
 (defalias clojure.core/defprotocol+record defprotocol+record)
 (defalias clojure.core/defprotocol+type defprotocol+type)
 
-(when-require 'clojure.core.async
-  (load "core_async"))
+
+(def ^:private AFTER-LOADS (atom {}))
+
+(defonce alter-load-one
+  (delay
+   (alter-var-root
+    #'clojure.core/load-one
+    (fn [f]
+      (fn [lib need-ns require]
+        (let [ret (f lib need-ns require)]
+          (when-some [f (@AFTER-LOADS lib)]
+            (f))
+          ret))))))
+
+(defn after-load [ns f]
+  @alter-load-one
+  (swap! AFTER-LOADS assoc ns f))
+
+
+
+(after-load 'clojure.core.async #(load "/core_async"))
 
 (when (io/resource "user.ext.clj")
   (load "user.ext"))
