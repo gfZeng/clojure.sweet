@@ -1,5 +1,8 @@
 {:paths ["src/main/clojure" "src/main/resources"]
- :deps  {org.clojure/tools.logging {:mvn/version "0.4.1"}}
+ :deps  {org.clojure/clojure       {:mvn/version "RELEASE"}
+         org.clojure/tools.logging {:mvn/version "RELEASE"}}
  :aliases
- {:dev {:extra-deps {cheshire               {:mvn/version "RELEASE"}
-                     org.clojure/core.async {:mvn/version "RELEASE"}}}}}
+ {:dev {:extra-deps {cheshire                  {:mvn/version "RELEASE"}
+                     metosin/jsonista          {:mvn/version "RELEASE"}
+                     com.cognitect/transit-clj {:mvn/version "RELEASE"}
+                     org.clojure/core.async    {:mvn/version "RELEASE"}}}}}

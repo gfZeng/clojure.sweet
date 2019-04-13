@@ -16,12 +16,13 @@
   (when-some [conf (io/resource "logging.properties")]
     (let [props (doto (Properties.)
                   (.load (io/input-stream conf)))
-          in    (PipedInputStream.)
-          out   (PipedOutputStream. in)]
+          in    (PipedInputStream.)]
       (doseq [[k v] (System/getProperties)
-              :when (str/starts-with? k "java.util.logging.")]
+              :when (or (str/starts-with? k "java.util.logging.")
+                        (= k ".level"))]
         (.setProperty props k v))
-      (.store props (io/writer out) "Memory temporary")
+      (with-open [out (PipedOutputStream. in)]
+        (.store props (io/writer out) "Memory temporary"))
       (.. java.util.logging.LogManager
           getLogManager
           (readConfiguration in)))))
