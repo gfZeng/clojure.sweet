@@ -3,6 +3,7 @@
          org.clojure/tools.logging {:mvn/version "RELEASE"}}
  :aliases
  {:dev {:extra-deps {cheshire                  {:mvn/version "RELEASE"}
+                     aleph                     {:mvn/version "0.4.6"}
                      metosin/jsonista          {:mvn/version "RELEASE"}
                      com.cognitect/transit-clj {:mvn/version "RELEASE"}
                      org.clojure/core.async    {:mvn/version "RELEASE"}}}}}
