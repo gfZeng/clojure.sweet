@@ -3,32 +3,14 @@
                             extend-with-coerce
                             defprotocol+record defprotocol+type])
   (:require [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.tools.logging :refer (info)])
   (:import [java.util Properties]
            [java.io PipedOutputStream PipedInputStream]
            [java.nio.channels
             WritableByteChannel
             ReadableByteChannel
             Channels]))
-
-
-(when-not (System/getProperty "java.util.logging.config.file")
-  (when-some [conf (io/resource "logging.properties")]
-    (let [props (doto (Properties.)
-                  (.load (io/input-stream conf)))
-          in    (PipedInputStream.)]
-      (doseq [[k v] (System/getProperties)
-              :when (or (str/starts-with? k "java.util.logging.")
-                        (= k ".level"))]
-        (.setProperty props k v))
-      (with-open [out (PipedOutputStream. in)]
-        (.store props (io/writer out) "Memory temporary"))
-      (.. java.util.logging.LogManager
-          getLogManager
-          (readConfiguration in)))))
-
-(require '[clojure.tools.logging :refer (info)])
-
 
 (extend-protocol io/IOFactory
   WritableByteChannel

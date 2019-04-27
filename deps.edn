@@ -1,6 +1,7 @@
 {:paths ["src/main/clojure" "src/main/resources"]
- :deps  {org.clojure/clojure       {:mvn/version "RELEASE"}
-         org.clojure/tools.logging {:mvn/version "RELEASE"}}
+ :deps  {org.clojure/clojure            {:mvn/version "RELEASE"}
+         org.clojure/tools.logging      {:mvn/version "RELEASE"}
+         ch.qos.logback/logback-classic {:mvn/version "1.2.3"}}
  :aliases
  {:dev {:extra-deps {cheshire                  {:mvn/version "RELEASE"}
                      aleph                     {:mvn/version "0.4.6"}
