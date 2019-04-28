@@ -1,4 +1,4 @@
-(ns ^:skip-aot? sweet.http
+(ns ^:skip-aot? sweet.io.http
   (:require [clojure.core.async :as a
              :refer (go go-loop <! >! chan timeout <!!)]
             [manifold.deferred :as d]

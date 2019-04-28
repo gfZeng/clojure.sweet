@@ -1,4 +1,4 @@
-(in-ns 'sweet.json)
+(in-ns 'sweet.data.json)
 
 
 (require '[jsonista.core :as jsonista])

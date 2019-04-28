@@ -1,4 +1,4 @@
-(ns ^:skip-aot? sweet.json
+(ns ^:skip-aot? sweet.data.json
   (:refer-clojure :exclude [read])
   (:require [clojure.java.io :as io]))
 
