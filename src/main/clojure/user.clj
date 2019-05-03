@@ -1,10 +1,11 @@
 (ns user
   (:refer-clojure :exclude [defalias if-require when-require cond-require
-                            extend-with-coerce
-                            defprotocol+record defprotocol+type])
+                            extend-with-coerce])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.tools.logging :refer (info)])
+            [clojure.tools.logging :refer (info)]
+
+            [sweet.reader])
   (:import [java.util Properties]
            [java.io PipedOutputStream PipedInputStream]
            [java.nio.channels
@@ -43,47 +44,6 @@
          ~protocol
          ~@(for [{f :name arglists :arglists} sigs]
              (sig-form f arglists))))))
-
-(def COERCIONS
-  {'int     #(Integer/parseInt %)
-   'long    #(Long/parseLong %)
-   'boolean #(Boolean/parseBoolean %)
-   'strings #(vec (str/split % #","))
-   'ints    (fn [s] (mapv #(Integer/parseInt %)
-                          (str/split s #",")))
-   'longs   (fn [s] (mapv #(Long/parseLong %)
-                          (str/split s #",")))})
-
-(defn read-property
-  ([x] (read-property x nil))
-  ([x not-found]
-   (let [tag  (:tag (meta x))
-         k    (str x)
-         envk (str/upper-case (str/replace k #"[-.]" "_"))
-         v    (or (System/getProperty k)
-                  (System/getenv envk))
-         prop (if (nil? v)
-                not-found
-                ((COERCIONS tag identity) v))]
-     (info "#prop" k "=>" (pr-str prop))
-     prop)))
-
-(defn read-property-form [x]
-  (if (sequential? x)
-    `(read-property '~(first x) ~(second x))
-    `(read-property '~x nil)))
-
-(defn array-type [clazz]
-  (case clazz
-    boolean (Class/forName "[Z")
-    byte    (Class/forName "[B")
-    char    (Class/forName "[C")
-    short   (Class/forName "[S")
-    int     (Class/forName "[I")
-    long    (Class/forName "[J")
-    float   (Class/forName "[F")
-    double  (Class/forName "[D")
-    (Class/forName (str "[L" (.getCanonicalName (resolve clazz)) ";"))))
 
 (defmacro defalias
   "Defines an alias for a var: a new var with the same root binding (if
@@ -138,41 +98,58 @@
          attrs        (conj attrs attrs-merge)]
      [(with-meta sym attrs) args])))
 
-(defmacro defprotocol+
+
+(defmulti model-mixin (fn [mixin name fields] mixin))
+
+(defmethod model-mixin :lookup [_ name fields]
+  `(clojure.lang.ILookup
+    ~'(valAt [this k]
+             (.valAt this k nil))
+    (~'valAt ~'[this k not-found]
+     (case ~'k
+       ~@(interleave (map keyword fields) fields)
+       ~'not-found))))
+
+(defn- symbol-argv [argv]
+  (mapv #(if (symbol? %) % (gensym "arg_")) argv))
+
+(defmacro defmodel
   {:style/indent '(2 nil nil (:defn))}
-  [thedef rname fields & impls]
-  (let [p             (symbol (str \I rname))
-        symargs       (fn [args]
-                        (mapv #(if (symbol? %) % (gensym "arg_")) args))
+  [model fields & impls]
+  (let [[mixin impls] (split-with keyword? impls)
         [pimpls more] (split-with seq? impls)
-        pimpls        (group-by first pimpls)
-        sigs          (for [[fname impls] pimpls]
-                        (cons fname (map (comp symargs second) impls)))]
+
+        pimpls    (group-by first pimpls)
+        sigs      (for [[fname impls] pimpls]
+                    (cons fname (map (comp symbol-argv second) impls)))
+        protocol? (boolean (seq pimpls))
+        pname     (symbol (str \I model))
+        pdef      (when protocol?
+                    `(defprotocol ~pname
+                       ~@sigs))
+        pimplsdef (when protocol?
+                    `(~pname ~@(mapcat val pimpls)))
+
+        mixin  (set mixin)
+        thedef (if (:record mixin)
+                 `defrecord
+                 `deftype)
+        mixin  (disj mixin :record :type :protocol)]
     `(do
-       (defprotocol ~p
-         ~@sigs)
-       (~thedef ~rname ~fields
-        ~p
-        ~@(mapcat val pimpls)
-        ~@more))))
+       ~pdef
+       (~thedef ~model ~fields
+        ~@pimplsdef
+        ~@more
+        ~@(mapcat #(model-mixin % model fields) mixin)))))
 
-(defmacro defprotocol+record
-  {:style/indent '(2 nil nil (:defn))}
-  [& decls]
-  `(defprotocol+ defrecord ~@decls))
-
-(defmacro defprotocol+type
-  {:style/indent '(2 nil nil (:defn))}
-  [& decls]
-  `(defprotocol+ deftype ~@decls))
 
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
 (defalias clojure.core/extend-with-coerce extend-with-coerce)
-(defalias clojure.core/defprotocol+record defprotocol+record)
-(defalias clojure.core/defprotocol+type defprotocol+type)
+(defalias clojure.core/defmodel defmodel)
+(defalias clojure.core/model-mixin model-mixin)
 
 
 (def ^:private AFTER-LOADS (atom {}))

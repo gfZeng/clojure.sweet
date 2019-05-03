@@ -113,7 +113,8 @@
                            (a/put! cmds (Command. :close ws))
                            (if (and reconnect? (not (clojure.core.async.impl.protocols/closed? duplex)))
                              (connect)
-                             (debug "websocket closed" req))))))))))))
+                             (debug "websocket closed" req))))))))))
+   duplex))
 
 (defn subscribe [duplex event key f]
   (a/put! duplex (Command. :subscribe {:event event :key key :fn f})))
