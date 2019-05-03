@@ -1,4 +1,4 @@
-(ns sweet.data.transit
+(ns ^:skip-aot? sweet.data.transit
   (:refer-clojure :exclude [read])
   (:require [cognitect.transit :as transit])
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]))
