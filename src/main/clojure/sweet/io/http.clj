@@ -84,13 +84,12 @@
        (when-some [x (<! cmds)]
          (if (instance? Command x)
            (case (:type x)
-             :open        (do
-                            (let [ws (second x)]
-                              (do
-                                (doseq [x buf]
-                                  (<! (send! ws x))))
-                              (fire-events registry :open)
-                              (recur ws registry [])))
+             :open        (let [ws (:data x)]
+                            (do
+                              (doseq [x buf]
+                                (<! (send! ws x))))
+                            (fire-events registry :open)
+                            (recur ws registry []))
              :close       (do
                             (fire-events registry :close)
                             (recur nil subs buf))
