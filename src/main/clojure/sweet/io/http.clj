@@ -85,8 +85,12 @@
          (if (instance? Command x)
            (case (:type x)
              :open        (do
-                            (fire-events registry :open)
-                            (recur (second x) registry buf))
+                            (let [ws (second x)]
+                              (do
+                                (doseq [x buf]
+                                  (<! (send! ws x))))
+                              (fire-events registry :open)
+                              (recur ws registry [])))
              :close       (do
                             (fire-events registry :close)
                             (recur nil subs buf))
@@ -113,14 +117,16 @@
                            (a/put! cmds (Command. :close ws))
                            (if (and reconnect? (not (clojure.core.async.impl.protocols/closed? duplex)))
                              (connect)
-                             (debug "websocket closed" req))))))))))
-   duplex))
+                             (debug "websocket closed" req)))))))))
+     (vary-meta duplex assoc :<command> cmds))))
 
 (defn subscribe [duplex event key f]
-  (a/put! duplex (Command. :subscribe {:event event :key key :fn f})))
+  (a/put! (:<command> (meta duplex))
+          (Command. :subscribe {:event event :key key :fn f})))
 
 (defn unsubscribe [duplex event key]
-  (a/put! duplex (Command. :unsubscribe {:event event :key key})))
+  (a/put! (:<command> (meta duplex))
+          (Command. :unsubscribe {:event event :key key})))
 
 (defn on-open [duplex key f]
   (subscribe duplex :open key f))
