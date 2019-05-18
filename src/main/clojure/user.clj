@@ -1,8 +1,12 @@
 (ns user
-  (:refer-clojure :exclude [defalias if-require when-require cond-require
-                            extend-with-coerce])
+  (:refer-clojure :exclude [defalias
+                            extend-with-coerce
+                            defmodel model-mixin
+                            if-require when-require cond-require
+                            return-as])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.walk :as walk]
             [clojure.tools.logging :refer (info)]
 
             [sweet.reader])
@@ -142,6 +146,13 @@
         ~@more
         ~@(mapcat #(model-mixin % model fields) mixin)))))
 
+(defmacro return-as [x & body]
+  (let [body (walk/postwalk-replace {x `(deref ~x)} (cons 'do body))]
+    `(let [~x   (volatile! nil)
+           ret# ~body]
+       (vreset! ~x ret#)
+       ret#)))
+
 
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
@@ -150,6 +161,7 @@
 (defalias clojure.core/extend-with-coerce extend-with-coerce)
 (defalias clojure.core/defmodel defmodel)
 (defalias clojure.core/model-mixin model-mixin)
+(defalias clojure.core/return-as return-as)
 
 
 (def ^:private AFTER-LOADS (atom {}))
