@@ -5,15 +5,17 @@
 
 
 (def COERCIONS
-  {'int     #(Integer/parseInt %)
-   'long    #(Long/parseLong %)
-   'boolean #(Boolean/parseBoolean %)
-   'strings #(vec (str/split % #","))
-   'ints    (fn [s] (mapv #(Integer/parseInt %)
-                          (str/split s #",")))
-   'longs   (fn [s] (mapv #(Long/parseLong %)
+  {'int      #(Integer/parseInt %)
+   'long     #(Long/parseLong %)
+   'boolean  #(Boolean/parseBoolean %)
+   'keyword  keyword
+   'strings  #(vec (str/split % #","))
+   'keywords #(mapv keyword (str/split % #","))
+   'ints     (fn [s] (mapv #(Integer/parseInt %)
+                           (str/split s #",")))
+   'longs    (fn [s] (mapv #(Long/parseLong %)
 
-                          (str/split s #",")))})
+                           (str/split s #",")))})
 
 (defn read-property
   ([x] (read-property x nil))
