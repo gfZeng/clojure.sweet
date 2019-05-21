@@ -3,7 +3,9 @@
                             extend-with-coerce
                             defmodel model-mixin
                             if-require when-require cond-require
-                            return-as])
+                            return-as
+                            Mappable
+                            ->map])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :as walk]
@@ -103,16 +105,29 @@
      [(with-meta sym attrs) args])))
 
 
+(defprotocol Mappable
+  (->map [this]))
+
 (defmulti model-mixin (fn [mixin name fields] mixin))
 
 (defmethod model-mixin :lookup [_ name fields]
-  `(clojure.lang.ILookup
-    ~'(valAt [this k]
-             (.valAt this k nil))
-    (~'valAt ~'[this k not-found]
-     (case ~'k
-       ~@(interleave (map keyword fields) fields)
-       ~'not-found))))
+  {:dynamics `(clojure.lang.ILookup
+               ~'(valAt [this k]
+                        (.valAt this k nil))
+               (~'valAt ~'[this k not-found]
+                (case ~'k
+                  ~@(interleave (map keyword fields) fields)
+                  ~'not-found)))})
+
+(defmethod model-mixin :map [_ name fields]
+  (let [ofsym (symbol (str "map->" name))
+        tosym (symbol (str name "->map"))
+        keys  (map keyword fields)]
+    {:statics  `((defn ~ofsym [~'m]
+                   (new ~name ~@(map #(list % 'm) keys))))
+     :dynamics `(Mappable
+                 (~'->map [~'this]
+                  (array-map ~@(interleave keys (map #(list % 'this) keys)))))}))
 
 (defn- symbol-argv [argv]
   (mapv #(if (symbol? %) % (gensym "arg_")) argv))
@@ -138,13 +153,18 @@
         thedef (if (:record mixin)
                  `defrecord
                  `deftype)
-        mixin  (disj mixin :record :type :protocol)]
+        mixin  (disj mixin :record :type :protocol)
+        exts   (->> (model-mixin % model fields)
+                    (for [% mixin])
+                    (apply merge-with concat))]
     `(do
        ~pdef
        (~thedef ~model ~fields
         ~@pimplsdef
         ~@more
-        ~@(mapcat #(model-mixin % model fields) mixin)))))
+        ~@(:dynamics exts))
+       ~@(:statics exts)
+       ~model)))
 
 (defmacro return-as [x & body]
   (let [body (walk/postwalk-replace {x `(deref ~x)} (cons 'do body))]
@@ -162,6 +182,8 @@
 (defalias clojure.core/defmodel defmodel)
 (defalias clojure.core/model-mixin model-mixin)
 (defalias clojure.core/return-as return-as)
+(defalias clojure.core/Mappable Mappable)
+(defalias clojure.core/->map ->map)
 
 
 (def ^:private AFTER-LOADS (atom {}))
