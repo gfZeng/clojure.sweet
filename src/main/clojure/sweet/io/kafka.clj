@@ -61,7 +61,7 @@
                (deserialize [_ _ bs]
                  (coerce bs)))))
          spec (merge CONSUMER-SPEC *options*)]
-     (if (Boolean/valueOf (spec "enable.auto.commit"))
+     (if (spec "group.id")
        (doto (KafkaConsumer. spec nil decoder)
          (subscribe offsets))
        (doto (KafkaConsumer. spec nil decoder)
