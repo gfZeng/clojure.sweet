@@ -111,20 +111,23 @@
 (defmulti model-mixin (fn [mixin name fields] mixin))
 
 (defmethod model-mixin :lookup [_ name fields]
-  {:dynamics `(clojure.lang.ILookup
-               ~'(valAt [this k]
-                        (.valAt this k nil))
-               (~'valAt ~'[this k not-found]
-                (case ~'k
-                  ~@(interleave (map keyword fields) fields)
-                  ~'not-found)))})
+  (let [keys (map keyword fields)]
+    {:dynamics `(clojure.lang.ILookup
+                 ~'(valAt [this k]
+                          (.valAt this k nil))
+                 (~'valAt ~'[this k not-found]
+                  (case ~'k
+                    ~@(interleave keys fields)
+                    ~'not-found)))}))
 
 (defmethod model-mixin :map [_ name fields]
-  (let [ofsym (symbol (str "map->" name))
-        tosym (symbol (str name "->map"))
-        keys  (map keyword fields)]
+  (let [ofsym  (symbol (str "map->" name))
+        ofkeys (map keyword fields)
+        keys   (->> fields
+                    (remove #(str/starts-with? % "_"))
+                    (mapv keyword))]
     {:statics  `((defn ~ofsym [~'m]
-                   (new ~name ~@(map #(list % 'm) keys))))
+                   (new ~name ~@(map #(list % 'm) ofkeys))))
      :dynamics `(Mappable
                  (~'->map [~'this]
                   (array-map ~@(interleave keys (map #(list % 'this) keys)))))}))
@@ -173,6 +176,10 @@
        (vreset! ~x ret#)
        ret#)))
 
+(defn xor
+  ([x y]        (and (or x y)
+                     (not (and x y))))
+  ([x y & more] (apply xor (xor x y) more)))
 
 (defalias clojure.core/defalias defalias)
 (defalias clojure.core/if-require if-require)
@@ -184,6 +191,7 @@
 (defalias clojure.core/return-as return-as)
 (defalias clojure.core/Mappable Mappable)
 (defalias clojure.core/->map ->map)
+(defalias clojure.core/xor xor)
 
 
 (def ^:private AFTER-LOADS (atom {}))
