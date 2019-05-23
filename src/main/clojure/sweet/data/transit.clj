@@ -8,21 +8,27 @@
 (defalias cognitect.transit)
 
 
-(defn write-bytes [x]
-  (with-open [out (ByteArrayOutputStream. 4096)]
-    (let [wrt (transit/writer out :json)]
-      (write wrt x)
-      (.toByteArray out))))
+(defn write-bytes
+  ([x] (write-bytes x {}))
+  ([x opts]
+   (with-open [out (ByteArrayOutputStream. 4096)]
+     (let [wrt (transit/writer out :json opts)]
+       (write wrt x)
+       (.toByteArray out)))))
 
-(defn write-str [x]
-  (String. (write-bytes x)))
+(defn write-str
+  ([x]      (write-str x {}))
+  ([x opts] (String. (write-bytes x opts))))
 
-(defn read-bytes [bs]
-  (with-open [in (ByteArrayInputStream. bs)]
-    (let [rdr (transit/reader in :json)]
-      (read rdr))))
+(defn read-bytes
+  ([bs] (read-bytes bs {}))
+  ([bs opts]
+   (with-open [in (ByteArrayInputStream. bs)]
+     (let [rdr (transit/reader in :json opts)]
+       (read rdr)))))
 
-(defn read-str [s]
-  (read-bytes (.getBytes s)))
+(defn read-str
+  ([s]      (read-str s {}))
+  ([s opts] (read-bytes (.getBytes s) opts)))
 
 
