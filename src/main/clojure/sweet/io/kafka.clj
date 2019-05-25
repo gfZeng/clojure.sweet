@@ -141,11 +141,11 @@
   (ProducerRecord. topic part-no key value))
 
 (defn send
-  ([producer topic part-no key value]
+  ([^KafkaProducer producer topic part-no key value]
    (send producer topic part-no key value (constantly nil) #(error %)))
-  ([producer topic part-no key value success!]
+  ([^KafkaProducer producer topic part-no key value success!]
    (send producer topic part-no key value success! #(error %)))
-  ([producer topic part-no key value success! error!]
+  ([^KafkaProducer producer topic part-no key value success! error!]
    (.send producer
           (producer-record topic part-no key value)
           (reify Callback
@@ -161,20 +161,20 @@
           #(do (a/close! pch) (error %) (throw %)))
    pch))
 
-(defn end-offsets [consumer parts]
+(defn end-offsets [^KafkaConsumer consumer parts]
   (PersistentHashMap/create (.endOffsets consumer parts)))
 
 (defn end-offset [consumer part]
   (get (end-offsets [part]) part))
 
-(defn seek [consumer offsets]
+(defn seek [^KafkaConsumer consumer offsets]
   (.assign consumer (vec (keys offsets)))
   (doseq [[part offset] offsets]
     (if (neg? offset)
       (.seekToEnd consumer [part])
       (.seek consumer part offset))))
 
-(defn subscribe [consumer offsets]
+(defn subscribe [^KafkaConsumer consumer offsets]
   (.subscribe
    consumer (map #(.topic %) (keys offsets))
    (reify ConsumerRebalanceListener
@@ -187,7 +187,7 @@
                :when (not (neg? offset))]
          (.seek consumer part offset))))))
 
-(defn poll! [consumer offsets]
+(defn poll! [^KafkaConsumer consumer offsets]
   (when (seq offsets)
     (seek consumer offsets))
   (->> (.poll consumer ten-seconds)
