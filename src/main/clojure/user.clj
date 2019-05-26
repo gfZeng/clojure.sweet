@@ -121,13 +121,18 @@
                     ~'not-found)))}))
 
 (defmethod model-mixin :map [_ name fields]
-  (let [ofsym  (symbol (str "map->" name))
+  (let [mksym  (symbol (str "make-" name))
+        entmap (symbol (str name "-map"))
+        build  (if (resolve entmap)
+                 `(~entmap ~'m)
+                 'm)
         ofkeys (map keyword fields)
         keys   (->> fields
                     (remove #(str/starts-with? % "_"))
                     (mapv keyword))]
-    {:statics  `((defn ~ofsym [~'m]
-                   (new ~name ~@(map #(list % 'm) ofkeys))))
+    {:statics  `((defn ~mksym [~'m]
+                   (let [~'m ~build]
+                     (new ~name ~@(map #(list % 'm) ofkeys)))))
      :dynamics `(Mappable
                  (~'->map [~'this]
                   (array-map ~@(interleave keys (map #(list % 'this) keys)))))}))
