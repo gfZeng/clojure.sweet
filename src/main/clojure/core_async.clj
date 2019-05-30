@@ -58,3 +58,27 @@
            (close! pch#)
            (put! pch# ret#))))
      pch#))
+
+(deftype ReducingBuffer [^:volatile-mutable rval ^:volatile-mutable ^long n rf]
+  impl/UnblockingBuffer
+  impl/Buffer
+  (full? [this]
+    false)
+  (remove! [this]
+    (when (== n 1)
+      (set! n 0)
+      (let [val rval]
+        (set! rval (rf))
+        val)))
+  (add!* [this itm]
+    (set! n 1)
+    (set! rval (rf rval itm))
+    this)
+  (close-buf! [this])
+
+  clojure.lang.Counted
+  (count [this] n))
+
+
+(defn reducing-buffer [rf]
+  (ReducingBuffer. (rf) 0 rf))
