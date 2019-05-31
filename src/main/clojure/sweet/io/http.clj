@@ -109,6 +109,7 @@
         (a/take! (websocket-client req (a/promise-chan) exception-handler)
                  (fn [ws]
                    (when ws
+                     (debug "websocket connected" req)
                      (websocket-connect ws in false)
                      (a/put! cmds (Command. :open ws))
                      (s/on-closed
