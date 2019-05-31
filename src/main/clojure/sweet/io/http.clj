@@ -92,7 +92,7 @@
                             (recur ws registry []))
              :close       (do
                             (fire-events registry :close)
-                            (recur nil subs buf))
+                            (recur nil registry buf))
              :subscribe   (let [{:keys [event key fn]} (:data x)]
                             (recur ws (assoc-in registry [event key] fn) buf))
              :unsubscribe (let [{:keys [event key]} (:data x)]
