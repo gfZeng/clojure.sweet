@@ -85,10 +85,9 @@
          (if (instance? Command x)
            (case (:type x)
              :open        (let [ws (:data x)]
-                            (do
-                              (doseq [x buf]
-                                (<! (send! ws x))))
                             (fire-events registry :open)
+                            (doseq [x buf]
+                              (<! (send! ws x)))
                             (recur ws registry []))
 
              :close       (do
