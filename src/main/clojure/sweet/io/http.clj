@@ -90,11 +90,18 @@
                                 (<! (send! ws x))))
                             (fire-events registry :open)
                             (recur ws registry []))
+
              :close       (do
                             (fire-events registry :close)
                             (recur nil registry buf))
+
+             :reconnect   (do
+                            (when ws (s/close! ws))
+                            (recur nil registry buf))
+
              :subscribe   (let [{:keys [event key fn]} (:data x)]
                             (recur ws (assoc-in registry [event key] fn) buf))
+
              :unsubscribe (let [{:keys [event key]} (:data x)]
                             (recur ws (update registry event dissoc key) buf)))
            (if ws
@@ -119,6 +126,10 @@
                              (connect)
                              (debug "websocket closed" req)))))))))
      (vary-meta duplex assoc :<command> cmds))))
+
+(defn reconnect! [duplex]
+  (a/put! (:<command> (meta duplex))
+          (Command. :reconnect nil)))
 
 (defn subscribe [duplex event key f]
   (a/put! (:<command> (meta duplex))
