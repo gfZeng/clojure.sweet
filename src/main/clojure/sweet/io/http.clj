@@ -1,146 +1,96 @@
-(ns ^:skip-aot? sweet.io.http
-  (:require [clojure.core.async :as a
-             :refer (go go-loop <! >! chan timeout <!!)]
-            [manifold.deferred :as d]
-            [manifold.stream :as s]
-            [aleph.http :as http]
-            [clojure.tools.logging :as log
-             :refer (debug info warn error fatal spy)]
-            [clojure.string :as str]))
+(ns sweet.io.http
+  (:require [clojure.tools.logging :as log
+             :refer (debug info warn error fatal spy)]))
 
 
-(defn default-exception-handler [e req pch]
-  (a/close! pch)
-  (error e "uncaught in for request" req))
+(defn default-error-handler [conn e]
+  (error e "connection" conn)
+  (throw e))
+
+(defmulti websocket-connection
+  (fn [impl-keyword request listener] impl-keyword))
+
+(defprotocol WebSocketConnection
+  (closed? [this] closed?)
+  (close! [this code reason])
+  (send!   [this message])
+  (ping!   [this message])
+  (pong!   [this message]))
+
+(defprotocol Reconnection
+  (listen! [this listener])
+  (once-opened [this key handler])
+  (remove-once-opened [this key])
+  (reconnect! [this] [this previous-connection]))
 
 
-(defn fetch
-  ([req]     (fetch req (a/promise-chan)))
-  ([req pch] (fetch req pch default-exception-handler))
-  ([req pch exception-handler]
-   (-> (http/request req)
-       (d/chain' #(a/put! pch %))
-       (d/catch' #(exception-handler % req pch))
-       (d/catch' #(default-exception-handler % req pch)))
-   pch))
 
+(deftype WebSocket [impl-keyword
+                    ^:volatile-mutable connection
+                    request listener
+                    closed?
+                    once-opened-handlers]
 
-(defmacro defrequest [name]
-  (let [method (keyword (str/lower-case (str name)))]
-    `(defn ~name
-       {:arglist (:arglist #'fetch)}
-       ([req#] (~name req# (a/promise-chan)))
-       ([req# pch#] (~name req# pch# default-exception-handler))
-       ([req# pch# exh#] (fetch (assoc req# :method ~method) pch# exh#)))))
+  WebSocketConnection
+  (closed? [this] closed?)
+  (close! [this code reason]
+    (set! (.-closed? this) true)
+    (close! connection code reason))
+  (send! [this message]
+    (send! connection message))
 
-(defrequest GET)
-(defrequest POST)
-(defrequest PUT)
-(defrequest PATCH)
-(defrequest DELETE)
-(defrequest OPTION)
-(defrequest HEAD)
+  Reconnection
+  (listen! [this listener]
+    (let [open-fn  (:on-open listener)
+          close-fn (:on-close listener)
+          on-open  (fn [conn]
+                     (let [ret (when open-fn (open-fn conn))]
+                       (doseq [f (vals @once-opened-handlers)]
+                         (f conn))
+                       ret))
+          on-close (fn [conn code reason]
+                     (let [ret (when close-fn (close-fn conn code reason))]
+                       (when (identical? ret :reconnect)
+                         (reconnect! this conn))
+                       ret))
+          on-error (or (:on-error listener) default-error-handler)
+          listener (assoc listener
+                          :on-open on-open
+                          :on-close on-close
+                          :on-error on-error)]
+      (set! (.-listener this) listener)
+      this))
+  (once-opened [this key handler]
+    (locking this
+      (vswap! once-opened-handlers assoc key handler)
+      (handler connection))
+    this)
 
+  (remove-once-opened [this key]
+    (locking this
+      (vswap! once-opened-handlers dissoc key))
+    this)
 
-(defn websocket-client
-  ([req]     (websocket-client req (a/promise-chan)))
-  ([req pch] (websocket-client req pch default-exception-handler))
-  ([{url :url :as req}  pch exception-handler]
-   (-> (http/websocket-client url req)
-       (d/chain' #(a/put! pch %))
-       (d/catch' #(exception-handler % req pch))
-       (d/catch' #(default-exception-handler % req pch)))
-   pch))
+  (reconnect! [this] (reconnect! this connection))
 
+  (reconnect! [this previous-connection]
+    (when (identical? previous-connection connection)
+      (locking this
+        (when (identical? previous-connection connection)
+          (set! (.-connection this)
+                (websocket-connection impl-keyword request listener)))))
+    this))
 
-(defn send!
-  ([ws x] (send! ws x (a/promise-chan)))
-  ([ws x pch]
-   (-> (s/put! ws x)
-       (d/chain' #(a/put! pch %)))
-   pch))
-
-(defn websocket-connect
-  ([ws in]
-   (websocket-connect ws in true))
-  ([ws in close?]
-   (s/connect ws in  {:downstream? close? :upstream? true})))
-
-
-(defrecord Command [type data])
+(def ^:const default-implement :java)
 
 (defn websocket
-  ([req]        (websocket req (a/duplex (a/chan 10) (a/chan))))
-  ([req duplex] (websocket req duplex default-exception-handler))
-  ([req {:keys [in out] :as duplex} exception-handler]
-   (let [reconnect?  (:auto-reconnect? req)
-         cmds        (a/pipe out (a/chan 10))
-         fire-events (fn [registry event]
-                       (doseq [f (vals (registry event))]
-                         (f)))]
-     (go-loop [ws       nil
-               registry {}
-               buf      []]
-       (when-some [x (<! cmds)]
-         (if (instance? Command x)
-           (case (:type x)
-             :open        (let [ws (:data x)]
-                            (fire-events registry :open)
-                            (doseq [x buf]
-                              (<! (send! ws x)))
-                            (recur ws registry []))
+  ([request listener]
+   (websocket default-implement request listener))
 
-             :close       (do
-                            (fire-events registry :close)
-                            (recur nil registry buf))
+  ([impl-keyword request listener]
+   (doto (WebSocket. impl-keyword nil request nil false (volatile! {}))
+     (listen! listener)
+     (reconnect! nil))))
 
-             :reconnect   (do
-                            (when ws (s/close! ws))
-                            (recur nil registry buf))
 
-             :subscribe   (let [{:keys [event key fn]} (:data x)]
-                            (recur ws (assoc-in registry [event key] fn) buf))
-
-             :unsubscribe (let [{:keys [event key]} (:data x)]
-                            (recur ws (update registry event dissoc key) buf)))
-           (if ws
-             (do
-               (doseq [x buf]
-                 (<! (send! ws x)))
-               (<! (send! ws x))
-               (recur ws registry []))
-             (recur ws registry (conj buf x))))))
-
-     ((fn connect []
-        (a/take! (websocket-client req (a/promise-chan) exception-handler)
-                 (fn [ws]
-                   (when ws
-                     (debug "websocket connected" req)
-                     (websocket-connect ws in false)
-                     (a/put! cmds (Command. :open ws))
-                     (s/on-closed
-                      ws (fn []
-                           (a/put! cmds (Command. :close ws))
-                           (if (and reconnect? (not (clojure.core.async.impl.protocols/closed? duplex)))
-                             (connect)
-                             (debug "websocket closed" req)))))))))
-     (vary-meta duplex assoc :<command> cmds))))
-
-(defn reconnect! [duplex]
-  (a/put! (:<command> (meta duplex))
-          (Command. :reconnect nil)))
-
-(defn subscribe [duplex event key f]
-  (a/put! (:<command> (meta duplex))
-          (Command. :subscribe {:event event :key key :fn f})))
-
-(defn unsubscribe [duplex event key]
-  (a/put! (:<command> (meta duplex))
-          (Command. :unsubscribe {:event event :key key})))
-
-(defn on-open [duplex key f]
-  (subscribe duplex :open key f))
-
-(defn on-close [duplex key f]
-  (subscribe duplex :close key f))
-
+(load "http/java")
