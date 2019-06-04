@@ -11,7 +11,8 @@
             [clojure.walk :as walk]
             [clojure.tools.logging :refer (info)]
 
-            [sweet.reader])
+            [sweet.reader]
+            [medley.core])
   (:import [java.util Properties]
            [java.io PipedOutputStream PipedInputStream]
            [java.nio.channels
@@ -187,6 +188,12 @@
   ([x y & more] (apply xor (xor x y) more)))
 
 (defalias clojure.core/defalias defalias)
+(in-ns 'clojure.core)
+(defalias medley.core)
+(in-ns 'user)
+(refer-clojure)
+
+
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
