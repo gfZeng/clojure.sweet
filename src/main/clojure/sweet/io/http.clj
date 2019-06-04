@@ -12,7 +12,7 @@
 
 (defprotocol WebSocketConnection
   (closed? [this] closed?)
-  (close! [this code reason])
+  (close!  [this] [this code reason])
   (send!   [this message])
   (ping!   [this message])
   (pong!   [this message]))
@@ -33,6 +33,9 @@
 
   WebSocketConnection
   (closed? [this] closed?)
+  (close! [this]
+    (set! (.-closed? this) true)
+    (close! connection))
   (close! [this code reason]
     (set! (.-closed? this) true)
     (close! connection code reason))
@@ -71,10 +74,12 @@
       (vswap! once-opened-handlers dissoc key))
     this)
 
-  (reconnect! [this] (reconnect! this connection))
+  (reconnect! [this]
+    (reconnect! this connection))
 
   (reconnect! [this previous-connection]
-    (when (identical? previous-connection connection)
+    (when previous-connection (close! previous-connection))
+    (when (and (not closed?) (identical? previous-connection connection))
       (locking this
         (when (identical? previous-connection connection)
           (set! (.-connection this)

@@ -20,6 +20,8 @@
     (.sendPing this ^ByteBuffer message))
   (pong! [this message]
     (.sendPong this ^ByteBuffer message))
+  (close! [this]
+    (.sendClose this WebSocket/NORMAL_CLOSURE ""))
   (close! [this code reason]
     (.sendClose this code reason))
   (closed? [this]
