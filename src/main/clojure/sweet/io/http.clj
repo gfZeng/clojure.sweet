@@ -18,6 +18,7 @@
   (pong!   [this message]))
 
 (defprotocol Reconnection
+  (connection [this])
   (listen! [this listener])
   (once-opened [this key handler])
   (remove-once-opened [this key])
@@ -43,6 +44,7 @@
     (send! connection message))
 
   Reconnection
+  (connection [this] connection)
   (listen! [this listener]
     (let [open-fn  (:on-open listener)
           close-fn (:on-close listener)
