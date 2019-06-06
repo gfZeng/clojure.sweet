@@ -2,7 +2,7 @@
   (:import [java.nio ByteBuffer]
            [java.util LinkedList]
            [java.util.concurrent CompletionStage]
-           [java.net URI]
+           [java.net URI ProxySelector]
            [java.net.http HttpClient WebSocket
             WebSocket$Builder WebSocket$Listener])
   (:require [sweet.io.http :as http]))
@@ -87,8 +87,10 @@
 
 (defn ^WebSocket$Builder make-builder
   [{:keys [subprotocols headers]}]
-  (let [^WebSocket$Builder builder (.newWebSocketBuilder
-                                    (HttpClient/newHttpClient))]
+  (let [^WebSocket$Builder builder (-> (HttpClient/newBuilder)
+                                       (.proxy (ProxySelector/getDefault))
+                                       (.build)
+                                       (.newWebSocketBuilder))]
     (when-some [[^String p & ps] (seq subprotocols)]
       (.subprotocols builder p (into-array String ps)))
     (doseq [[k v] headers]
