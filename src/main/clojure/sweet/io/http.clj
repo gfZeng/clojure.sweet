@@ -3,6 +3,8 @@
              :refer (debug info warn error fatal spy)]))
 
 
+(def ^:const reconnect-code 3777)
+
 (defn default-error-handler [conn e]
   (error e "connection" conn)
   (throw e))
@@ -55,7 +57,8 @@
                        ret))
           on-close (fn [conn code reason]
                      (let [ret (when close-fn (close-fn conn code reason))]
-                       (when (identical? ret :reconnect)
+                       (when (or (identical? ret :reconnect)
+                                 (== code reconnect-code))
                          (reconnect! this conn))
                        ret))
           on-error (or (:on-error listener) default-error-handler)
@@ -77,7 +80,7 @@
     this)
 
   (reconnect! [this]
-    (reconnect! this connection))
+    (close! connection reconnect-code "reconnect"))
 
   (reconnect! [this previous-connection]
     (when previous-connection (close! previous-connection))
