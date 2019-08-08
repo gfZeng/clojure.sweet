@@ -49,7 +49,7 @@
 
 (defn consumer ^KafkaConsumer
   ([]         (consumer nil))
-  ([offsets]  (consumer offsets StringDeserializer))
+  ([offsets]  (consumer offsets (StringDeserializer.)))
   ([offsets decoder]
    (let [^Deserializer decoder
          (if (instance? Deserializer decoder)
@@ -123,7 +123,7 @@
      (a/duplex in wakeups))))
 
 (defn producer
-  ([] (producer StringSerializer))
+  ([] (producer (StringSerializer.)))
   ([encoder]
    (let [^Serializer encoder
          (if (instance? Serializer encoder)
@@ -137,28 +137,29 @@
      (KafkaProducer. PRODUCER-SPEC nil encoder))))
 
 
-(defn producer-record [topic part-no key value]
-  (ProducerRecord. topic part-no key value))
+(defn ^ProducerRecord producer-record
+  ([topic part-no key value]
+   (ProducerRecord. topic part-no key value))
+  ([topic part-no timestamp key value]
+   (ProducerRecord. topic part-no timestamp key value)))
 
 (defn send
-  ([^KafkaProducer producer topic part-no key value]
-   (send producer topic part-no key value (constantly nil) #(error %)))
-  ([^KafkaProducer producer topic part-no key value success!]
-   (send producer topic part-no key value success! #(error %)))
-  ([^KafkaProducer producer topic part-no key value success! error!]
-   (.send producer
-          (producer-record topic part-no key value)
+  ([^KafkaProducer producer ^ProducerRecord record]
+   (send producer record (constantly nil) #(error %)))
+  ([^KafkaProducer producer ^ProducerRecord record success!]
+   (send producer record ^ProducerRecord success! #(error %)))
+  ([^KafkaProducer producer record success! error!]
+   (.send producer record
           (reify Callback
             (^void onCompletion [_ ^RecordMetadata mt ^Exception e]
              (if e (error! e) (success! mt)))))))
 
 (defn send!
-  ([producer topic part-no key value]
-   (send! producer topic part-no key value (a/promise-chan)))
-  ([producer topic part-no key value pch]
-   (send producer topic part-no key value
-          #(a/put! pch %)
-          #(do (a/close! pch) (error %) (throw %)))
+  ([producer ^ProducerRecord record]
+   (send! producer record (a/promise-chan)))
+  ([producer ^ProducerRecord record pch]
+   (send producer record #(a/put! pch %)
+         #(do (a/close! pch) (error %) (throw %)))
    pch))
 
 (defn end-offsets [^KafkaConsumer consumer parts]
