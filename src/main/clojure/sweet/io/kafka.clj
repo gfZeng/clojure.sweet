@@ -195,8 +195,8 @@
        (.iterator)
        (iterator-seq)))
 
-(defn of-offset [consumer part offset]
-  (first (poll! {part offset})))
+(defn of-offset [^KafkaConsumer consumer part offset]
+  (first (poll! consumer {part offset})))
 
 
 
