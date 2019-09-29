@@ -165,8 +165,8 @@
 (defn end-offsets [^KafkaConsumer consumer parts]
   (PersistentHashMap/create (.endOffsets consumer parts)))
 
-(defn end-offset [consumer part]
-  (get (end-offsets [part]) part))
+(defn end-offset [^KafkaConsumer consumer part]
+  (get (end-offsets consumer [part]) part))
 
 (defn seek [^KafkaConsumer consumer offsets]
   (.assign consumer (vec (keys offsets)))
