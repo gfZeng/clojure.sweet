@@ -47,7 +47,7 @@
 (defn part ^TopicPartition [topic no]
   (TopicPartition. topic no))
 
-(defn consumer ^KafkaConsumer
+(defn ^KafkaConsumer consumer
   ([]         (consumer nil))
   ([offsets]  (consumer offsets (StringDeserializer.)))
   ([offsets decoder]
@@ -122,7 +122,7 @@
        (.start))
      (a/duplex in wakeups))))
 
-(defn producer
+(defn ^KafkaProducer producer
   ([] (producer (StringSerializer.)))
   ([encoder]
    (let [^Serializer encoder
