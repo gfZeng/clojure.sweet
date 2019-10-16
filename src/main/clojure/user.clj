@@ -58,11 +58,12 @@
   metadata (as provided by def) merged into the metadata of the original."
   ([ns]
    (require ns)
-   `(do
-      (require '~ns)
-      ~@(for [sym# (keys (ns-publics ns))
-              :let [orig# (symbol (name ns) (name sym#))]]
-          (list 'defalias sym# orig#))))
+   (when-not (:ns &env) ; temperary disable in clojurescript
+     `(do
+        (require '~ns)
+        ~@(for [sym# (keys (ns-publics ns))
+                :let [orig# (symbol (name ns) (name sym#))]]
+            (list 'defalias sym# orig#)))))
   ([dst orig]
    `(let [sv#   (resolve '~orig)
           ns#   '~(symbol (or (namespace dst) (ns-name *ns*)))
