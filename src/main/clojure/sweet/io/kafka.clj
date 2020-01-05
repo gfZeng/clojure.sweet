@@ -168,6 +168,15 @@
 (defn end-offset [^KafkaConsumer consumer part]
   (get (end-offsets consumer [part]) part))
 
+(defn offsets-for-times [^KafkaConsumer consumer tpar-tses]
+  (->> (.offsetsForTimes consumer tpar-tses)
+       (PersistentHashMap/create)
+       (map-vals #(.offset %))))
+
+(defn offset-for-time [^KafkaConsumer consumer tpar ts]
+  (-> (offsets-for-times consumer {tpar ts})
+      (get tpar)))
+
 (defn seek [^KafkaConsumer consumer offsets]
   (.assign consumer (vec (keys offsets)))
   (doseq [[part offset] offsets]
