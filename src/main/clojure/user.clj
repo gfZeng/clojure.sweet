@@ -36,6 +36,12 @@
 
 (info `*assert* *assert*)
 
+(defn set-default-exception-handler [h]
+  (Thread/setDefaultUncaughtExceptionHandler
+   (reify Thread$UncaughtExceptionHandler
+     (^void uncaughtException [this ^Thread t ^Throwable e]
+      (h t e)))))
+
 (defmacro extend-with-coerce [protocol type coerce]
   (let [p    @(resolve protocol)
         sigs (vals (:sigs p))
@@ -195,6 +201,7 @@
 (refer-clojure)
 
 
+(defalias clojure.core/set-default-exception-handler set-default-exception-handler)
 (defalias clojure.core/if-require if-require)
 (defalias clojure.core/when-require when-require)
 (defalias clojure.core/cond-require cond-require)
